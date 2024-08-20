@@ -3,29 +3,30 @@
 #include "UnityEngine/Vector3.hpp"
 #include "UnityEngine/SpriteRenderer.hpp"
 #include "HMUI/CurvedTextMeshPro.hpp"
-#include "questui/shared/BeatSaberUI.hpp"
-#include "questui/shared/QuestUI.hpp"
+#include "bsml/shared/Helpers/delegates.hpp"
+#include "bsml/shared/BSML.hpp"
 #include "GlobalNamespace/BombNoteController.hpp"
 #include "GlobalNamespace/NoteData.hpp"
 
 #include "config.hpp"
 #include "main.hpp"
+#include "logging.hpp"
 
-using namespace QuestUI;
+#include "bsml/shared/BSML-Lite/Creation/Layout.hpp"
+#include "bsml/shared/BSML-Lite/Creation/Buttons.hpp"
+#include "bsml/shared/BSML-Lite/Creation/Settings.hpp"
+#include "bsml/shared/BSML-Lite/Creation/Text.hpp"
+
 using namespace GlobalNamespace;
 using namespace UnityEngine;
 
-static ModInfo modInfo; // Stores the ID and version of our mod, and is sent to the modloader upon startup
+inline modloader::ModInfo modInfo = {MOD_ID, VERSION, 0}; // Stores the ID and version of our mod, and is sent to the modloader upon startup
 
 // Returns a logger, useful for printing debug messages
-Logger &getLogger() {
-	static Logger *logger = new Logger(modInfo);
-	return *logger;
-}
 
 // stolen from SmallQubes
 auto createHoriz(UnityEngine::UI::VerticalLayoutGroup *vertical) {
-	auto horiz = BeatSaberUI::CreateHorizontalLayoutGroup(vertical);
+	auto horiz = BSML::Lite::CreateHorizontalLayoutGroup(vertical);
 	horiz->GetComponent<UnityEngine::UI::LayoutElement *>()->set_minHeight(8);
 	horiz->set_childForceExpandHeight(true);
 	horiz->set_childAlignment(UnityEngine::TextAnchor::UpperCenter);
@@ -34,11 +35,11 @@ auto createHoriz(UnityEngine::UI::VerticalLayoutGroup *vertical) {
 
 void DidActivate(UnityEngine::GameObject *self, bool firstActivation) {
 	if(firstActivation) {
-		auto vertical = BeatSaberUI::CreateVerticalLayoutGroup(self->get_transform());
-		BeatSaberUI::CreateToggle(createHoriz(vertical), "Enabled", getModConfig().enabled.GetValue(), [](bool enabled) {
+		auto vertical = BSML::Lite::CreateVerticalLayoutGroup(self->get_transform());
+		 BSML::Lite::CreateToggle(createHoriz(vertical), "Enabled", getModConfig().enabled.GetValue(), [](bool enabled) {
 			getModConfig().enabled.SetValue(enabled);
 		});
-		BeatSaberUI::CreateColorPicker(createHoriz(vertical), "Bomb Color", getModConfig().bombColor.GetValue(), [](UnityEngine::Color col) {
+		 BSML::Lite::CreateColorPicker(createHoriz(vertical), "Bomb Color", getModConfig().bombColor.GetValue(), [](UnityEngine::Color col) {
 			getModConfig().bombColor.SetValue(col);
 		});
 	}
@@ -59,25 +60,25 @@ MAKE_HOOK_MATCH(BombNoteControllerInit, &GlobalNamespace::BombNoteController::In
 }
 
 // Called at the early stages of game loading
-extern "C" void setup(ModInfo &info) {
+extern "C" __attribute__((visibility("default"))) void setup(CModInfo& info) {
 	info.id = MOD_ID;
-	info.version = VERSION;
-	modInfo = info;
+    info.version = VERSION;
+	info.version_long = VERSION_LONG;
+	modInfo.assign(info);
 	
 	getModConfig().Init(modInfo);
-	getLogger().info("Completed setup!");
+	INFO("Completed setup!");
 }
 
 // Called later on in the game loading - a good time to install function hooks
-extern "C" void load() {
-	Init();
-	QuestUI::Register::RegisterGameplaySetupMenu(modInfo, "Bomb Qolorer", Register::MenuType::All, DidActivate);
-
+extern "C" __attribute__((visibility("default"))) void late_load() {
 	il2cpp_functions::Init();
+	BSML::Init();
+	BSML::Register::RegisterGameplaySetupTab(MOD_ID, DidActivate, BSML::MenuType::All);
 
-	getLogger().info("Installing hooks...");
+	INFO("Installing hooks...");
 	
-	INSTALL_HOOK(getLogger(), BombNoteControllerInit);
+	INSTALL_HOOK(Logger, BombNoteControllerInit);
 
-	getLogger().info("Installed all hooks!");
+	INFO("Installed all hooks!");
 }
