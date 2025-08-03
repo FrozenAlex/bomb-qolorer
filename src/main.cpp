@@ -49,8 +49,8 @@ void DidActivate(UnityEngine::GameObject *self, bool firstActivation) {
 //     your code here
 // }
 
-MAKE_HOOK_MATCH(BombNoteControllerInit, &GlobalNamespace::BombNoteController::Init, void, GlobalNamespace::BombNoteController *self, GlobalNamespace::NoteData *noteData, float worldRotation, UnityEngine::Vector3 moveStartPos, UnityEngine::Vector3 moveEndPos, UnityEngine::Vector3 jumpEndPos, float moveDuration, float jumpDuration, float jumpGravity) {
-	BombNoteControllerInit(self, noteData, worldRotation, moveStartPos, moveEndPos, jumpEndPos, moveDuration, jumpDuration, jumpGravity);
+MAKE_HOOK_MATCH(BombNoteControllerInit, &GlobalNamespace::BombNoteController::Init, void, GlobalNamespace::BombNoteController *self, ::GlobalNamespace::NoteData* noteData, ::ByRef<::GlobalNamespace::NoteSpawnData> noteSpawnData) {
+	BombNoteControllerInit(self, noteData, noteSpawnData);
 	if(!getModConfig().enabled.GetValue())
 		return;
 	for(auto m : self->GetComponentInChildren<Renderer *>()->get_materials()) {
